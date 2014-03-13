@@ -1,4 +1,2 @@
 jSmarty
-=======
-
-Smarty for Node.JS
+Smarty for Node.js

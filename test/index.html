@@ -1,0 +1,94 @@
+<html>
+<head>
+	<title></title>
+	<meta http-equiv="content-type" content="text/html;charset=utf-8">
+</head>
+<script type="text/javascript" src="../dest/jsmart.js"></script>
+<body>
+<script id="case1" type="text/jsTemplate">
+	tempSearchData = '{$search}';
+</script>
+<script id="case2" type="text/jsTemplate">
+	{foreach from=$classList item=classItem}
+        <dd id="{$classItem.id}">
+                <a href="#"><span>{$classItem.name}</span></a>
+            </dd>
+    {/foreach}
+</script>
+<script id="case3" type="text/jsTemplate">
+	{foreach from=$classList item=classItem name=foo}
+		{$smarty.foreach.foo.index}{$smarty.foreach.foo.last}
+        <dd id="{$classItem.id}">
+                <a href="#"><span>{$classItem.name}</span></a>
+            </dd>
+    {/foreach}
+</script>
+<script id="case4" type="text/jsTemplate">
+{literal}
+	{foreach from=$classList item=classItem name=foo}
+		{$smarty.foreach.foo.index}{$smarty.foreach.foo.last}
+        <dd id="{$classItem.id}">
+                <a href="#"><span>{$classItem.name}</span></a>
+            </dd>
+    {/foreach}
+{/literal}
+</script>
+<script id="case5" type="text/jsTemplate">
+	{foreach from=$classList item=classItem name=foo}
+		{$smarty.foreach.foo.index}{$smarty.foreach.foo.last}
+        <dd id="{$classItem.id}">
+                <a href="#"><span>{$classItem.name}</span></a>
+            </dd>
+    {foreachelse}
+    foreach is empty
+    {/foreach}
+</script>
+<script id="case6" type="text/jsTemplate">{assign var="asdf" value="test"}{$asdf}</script>
+<script id="case7" type="text/jsTemplate">{if $a lt 1}$a<1{else}$a>1{/if}</script>
+<script id="case8" type="text/jsTemplate">
+{if $a lt 1}$a<1{elseif $b gt 10}$b>10{else}$a>1{/if}
+</script>
+<script type="text/javascript">
+//var
+var s=new NC.reMarker();
+console.log(s.proc(document.getElementById('case1').innerHTML,{search:'good'}));
+//foreach
+var s=new NC.reMarker();
+console.log(s.proc(document.getElementById('case2').innerHTML,{
+	classList:[
+	{id:1,name:'test1'},
+	{id:2,name:'test2'},
+	{id:3,name:'test3'}
+	]
+}));
+//foreach index,last
+var s=new NC.reMarker();
+console.log(s.proc(document.getElementById('case3').innerHTML,{
+	classList:[
+	{id:1,name:'test1'},
+	{id:2,name:'test2'},
+	{id:3,name:'test3'}
+	]
+}));
+//literal
+var s=new NC.reMarker();
+console.log(s.proc(document.getElementById('case4').innerHTML,{}));
+
+//foreachelse
+var s=new NC.reMarker();
+console.log(s.proc(document.getElementById('case5').innerHTML,{classList:[]}));
+
+//assign
+var s=new NC.reMarker();
+console.log(s.proc(document.getElementById('case6').innerHTML,{}));
+
+//if
+var s=new NC.reMarker();
+console.log(s.proc(document.getElementById('case7').innerHTML,{a:10,b:50}));
+
+//if elseif
+var s=new NC.reMarker();
+console.log(s.proc(document.getElementById('case8').innerHTML,{a:10,b:50}));
+</script>
+</body>
+</html>	
