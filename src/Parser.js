@@ -217,7 +217,7 @@ Parser.prototype.functions = {
         var _temp = [];
         //TODO foreach.show没有实现
         _temp.push('~function(){');
-        _temp.push('if(typeof ' + phpToJSVar(from, Parser.openEachTag) + ' != "undefined" && '+phpToJSVar(from, Parser.openEachTag)+'.length>0 ){');
+        _temp.push('if(Object.prototype.toString.call({$var})==="[object Array]" && {$var}.length>0){ '.replace(/\{\$var\}/ig,phpToJSVar(from, Parser.openEachTag)));
         _temp.push('var iter=0;var length = 0;for (var k in ' + phpToJSVar(from, Parser.openEachTag) + ') {++length;}');
         _temp.push('for (var i in ' + phpToJSVar(from, Parser.openEachTag) + ') {');
         _temp.push('var smarty={};smarty.foreach={};');

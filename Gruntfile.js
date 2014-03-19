@@ -3,7 +3,7 @@ module.exports = function(grunt) {
     grunt.initConfig({
         pkg: grunt.file.readJSON('package.json'),
         concat: {
-            domop: {
+            jsmart: {
                 src: ['src/wrap_start.js', 'src/util.js', 'src/reMarker.js', 'src/Parser.js', 'src/wrap_end.js'],
                 dest: 'dest/jsmart.js'
             }
