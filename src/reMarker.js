@@ -27,7 +27,7 @@ reMarker.prototype.getIncluded = function () {
     return this._included;
 }
 reMarker.prototype.parse = function (templ) {
-    var TAG_REGEX = escapeRegExp(this.startTag) + '(?:\\s*)((?:[\\\/\\$"])*[\\w\\*"]+)(?:\\s*)(.*?)(?:\\1*)(?:\\s*)' + escapeRegExp(this.endTag);
+    var TAG_REGEX = escapeRegExp(this.startTag) + '(?:\\s*)((?:[\\\/\\$"\\\'])*[\\w\\*"\\\']+)(?:\\s*)(.*?)(?:\\1*)(?:\\s*)' + escapeRegExp(this.endTag);
     var matchRegexp = new RegExp(TAG_REGEX, 'gim');
     var _nodeToken = [],
         _matched, _lastIndex = 0;
@@ -61,7 +61,7 @@ reMarker.prototype.parse = function (templ) {
 };
 reMarker.prototype.proc = function (templ, data) {
     var that = this,
-        _complied,content;
+        _complied, content;
     try {
         this._vars = data;
         content = this.parse(templ);
@@ -124,7 +124,138 @@ var $smarty = {
         return s.slice(0, length) + etc;
     },
     'default': function (value, default_value) {
-        return value || default_value||'';
+        return value || default_value || '';
+    },
+    'spacify': function (s, space) {
+        if (!space) {
+            space = ' ';
+        }
+        return s.replace(/(\n|.)(?!$)/g, '$1' + space);
+    },
+    'nl2br': function (s) {
+        return s.replace(/\n/g, '<br />\n');
+    },
+    'capitalize': function (s, withDigits) {
+        var re = new RegExp(withDigits ? '[\\W\\d]+' : '\\W+');
+        var found = null;
+        var res = '';
+        for (found = s.match(re); found; found = s.match(re)) {
+            var word = s.slice(0, found.index);
+            if (word.match(/\d/)) {
+                res += word;
+            }
+            else {
+                res += word.charAt(0).toUpperCase() + word.slice(1);
+            }
+            res += s.slice(found.index, found.index + found[0].length);
+            s = s.slice(found.index + found[0].length);
+        }
+        if (s.match(/\d/)) {
+            return res + s;
+        }
+        return res + s.charAt(0).toUpperCase() + s.slice(1);
+    },
+    'upper': function (s) {
+        return s.toUpperCase();
+    },
+    'wordwrap': function (s, width, wrapWith, breakWords) {
+        width = width || 80;
+        wrapWith = wrapWith || '\n';
+
+        var lines = s.split('\n');
+        for (var i = 0; i < lines.length; ++i) {
+            var line = lines[i];
+            var parts = ''
+            while (line.length > width) {
+                var pos = 0;
+                var found = line.slice(pos).match(/\s+/);
+                for (; found && (pos + found.index) <= width; found = line.slice(pos).match(/\s+/)) {
+                    pos += found.index + found[0].length;
+                }
+                pos = pos || (breakWords ? width : (found ? found.index + found[0].length : line.length));
+                parts += line.slice(0, pos).replace(/\s+$/, '');// + wrapWith;
+                if (pos < line.length) {
+                    parts += wrapWith;
+                }
+                line = line.slice(pos);
+            }
+            lines[i] = parts + line;
+        }
+        return lines.join('\n');
+    },
+    'cat': function (s, value) {
+        value = value ? value : '';
+        return s + value;
+    },
+    'count_paragraphs': function (s) {
+        var found = s.match(/\n+/g);
+        if (found) {
+            return found.length + 1;
+        }
+        return 1;
+    },
+    'count_sentences': function (s) {
+        var found = s.match(/[^\s]\.(?!\w)/g);
+        if (found) {
+            return found.length;
+        }
+        return 0;
+    },
+    'lower': function (s) {
+        return s.toLowerCase();
+    },
+    'count_words': function (s) {
+        var found = s.match(/\w+/g);
+        if (found) {
+            return found.length;
+        }
+        return 0;
+    },
+    'indent': function (s, repeat, indentWith) {
+        repeat = repeat ? repeat : 4;
+        indentWith = indentWith ? indentWith : ' ';
+
+        var indentStr = '';
+        while (repeat--) {
+            indentStr += indentWith;
+        }
+
+        var tail = s.match(/\n+$/);
+        return indentStr + s.replace(/\n+$/, '').replace(/\n/g, '\n' + indentStr) + (tail ? tail[0] : '');
+    },
+    'replace': function (s, search, replaceWith) {
+        if (!search) {
+            return s;
+        }
+        s = new String(s);
+        search = new String(search);
+        replaceWith = new String(replaceWith);
+        var res = '';
+        var pos = -1;
+        for (pos = s.indexOf(search); pos >= 0; pos = s.indexOf(search)) {
+            res += s.slice(0, pos) + replaceWith;
+            pos += search.length;
+            s = s.slice(pos);
+        }
+        return res + s;
+    },
+    'regex_replace': function (s, re, replaceWith) {
+        var pattern = re.match(/^ *\/(.*)\/(.*) *$/);
+        return (new String(s)).replace(new RegExp(pattern[1], 'g' + (pattern.length > 1 ? pattern[2] : '')), replaceWith);
+    },
+    'noprint': function (s) {
+        return '';
+    },
+    'strip': function (s, replaceWith) {
+        replaceWith = replaceWith ? replaceWith : ' ';
+        return (new String(s)).replace(/[\s]+/g, replaceWith);
+    },
+    'strip_tags': function (s, addSpace) {
+        addSpace = (addSpace == null) ? true : addSpace;
+        return (new String(s)).replace(/<[^>]*?>/g, addSpace ? ' ' : '');
+    },
+    'string_format': function (s, fmt) {
+        return sprintf(fmt, s);
     },
     'fsize_format': function (size, format, precision) {
         // Defaults
@@ -141,7 +272,7 @@ var $smarty = {
         // Get "human" filesize
         var result = '';
         for (var s in sizes) {
-            if (size > sizes[s] || s == strtoupper(format)) {
+            if (size > sizes[s] || s == this.upper(format)) {
                 result = number_format(size / sizes[s], precision) + ' ' + s;
                 break;
             }
@@ -152,14 +283,14 @@ var $smarty = {
 $smarty.expr = function (variable, localVar) {
     var _var = new TextReader(variable);
     var words = _var.read();
-    if (words.length <1) {
+    if (words.length < 1) {
         return variable;
     }
 
     var exprString;
     //todo:判断是不是局部变量，且不是字符串类型，这里不严谨
     //如果是字符串或数字，则是静态内容，不需要处理
-    if(words[0]['string'] || words[0]['num']){
+    if (words[0]['string'] || words[0]['num']) {
         exprString = words[0]['string'] || words[0]['num'];
     }
     else if (!localVar) {
@@ -173,32 +304,33 @@ $smarty.expr = function (variable, localVar) {
         for (; i < words.length; i++) {
             var modifier = $smarty[words[i]['modifier']];
             if (modifier) {
-                exprString = '$util.' + words[i]['modifier'] + '(' + exprString +  _attr(i+1) + ')';
+                exprString = '$util.' + words[i]['modifier'] + '(' + exprString + _attr(i + 1) + ')';
                 //variable= modifier(words[i+1]);
             }
         }
     }
-    function _attr(start){
+    function _attr(start) {
         //没有更多的参数，直接返回
-        if(!words[start]){
+        if (!words[start]) {
             return '';
         }
-        var _attri=[];
+        var _attri = [];
 
-        for(var k = start; k < words.length; k++){
-            if(!words[k]['modifier']){
-                _attri.push(words[k]['string']||words[k]['num'])
-            }else{
+        for (var k = start; k < words.length; k++) {
+            if (!words[k]['modifier']) {
+                _attri.push(words[k]['string'] || words[k]['num'])
+            } else {
                 break;
             }
         }
-        i=k-1;
+        i = k - 1;
         //如果是有属性的在前面补一个逗号
-        if(_attri.length!=0){
+        if (_attri.length != 0) {
             _attri.unshift('');
         }
         return _attri.join(',');
     }
+
     return exprString;
 }
 $smarty.value = function (variable) {
@@ -280,14 +412,14 @@ TextReader.prototype = {
         var _string = '';
         for (var i = idx; i < l; i++) {
             var char = this.inChars.charAt(i);
-            if (parseInt(char) == char) {
+            if ((_string.length>0&&char==='.')||parseInt(char) == char) {
                 _string += char;
             } else {
                 i--;
                 break;
             }
         }
-        this.words.push({'num':_string});
+        this.words.push({'num': _string});
         return i;
     },
     findVariable: function (idx) {
@@ -302,7 +434,7 @@ TextReader.prototype = {
                 break;
             }
         }
-        this.words.push({'var':_string});
+        this.words.push({'var': _string});
         return i;
     },
     findString: function (idx) {
@@ -320,7 +452,7 @@ TextReader.prototype = {
                 break;
             }
         }
-        this.words.push({'string':'\'' + _string + '\''});
+        this.words.push({'string': '\'' + _string + '\''});
         return i;
     },
     findModifier: function (idx) {
@@ -335,7 +467,7 @@ TextReader.prototype = {
                 break;
             }
         }
-        this.words.push({'modifier':_string});
+        this.words.push({'modifier': _string});
         return i;
     }
 }

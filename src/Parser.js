@@ -51,7 +51,8 @@ Parser.prototype.parse = function(reMarker) {
             this._output += this.functions[expr].call(this, token.matched, this.getAttributes(attributes));
         } else {
             //变量或非正常表达式
-            this._output += "_out.push($util.value(" + $smarty.expr(expr + token.value,Parser.openEachTag) + "));\r\n";
+            var _expr=token.matched.substring(this._reMarker.startTag.length,token.matched.length-this._reMarker.endTag.length);
+            this._output += "_out.push($util.value(" + $smarty.expr(_expr,Parser.openEachTag) + "));\r\n";
         }
     }
 

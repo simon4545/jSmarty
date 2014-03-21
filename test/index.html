@@ -32,8 +32,17 @@ classList: [<br/>
     <tr>
         <td>
             <div id="case0">
+                {'a b'|spacify:"f"}<br/>
+                {124.62|string_format:"%.2f"}<br/>
                 {""|default:"default value"|truncate:7}<br/>
                 {$a|date_format:"%Y-%m-%d"}<br/>
+                {"asdfasdf"|capitalize:true}<br/>
+                {12312312|fsize_format:"MB":3}<br/>
+                {"asdfasdf\nwww"|nl2br}<br/>
+                {'lowcase'|cat:"111"}<br/>
+                {'count_words'|replace:"cou":"comeon"}<br/>
+                {'lowcase'|upper}<br/>
+                {'low ca se'|strip:"^"}<br/>
                 {$e|default:"default value"}
             </div>
         </td>
