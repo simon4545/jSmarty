@@ -968,7 +968,7 @@ var TextReader = function (inChars) {
 TextReader.prototype = {
     start: 0,
     end: 0,
-    VAR_REGEXP: /[\w\d_\-\.\[\]\'\"]/i,
+    VAR_REGEXP: /[^\s\|]/i,
 
     read: function () {
         var l = this.inChars.length;
@@ -1008,6 +1008,13 @@ TextReader.prototype = {
                     continue;
                 case ':':
                     //this.start=this.findString(this.start+1);
+                    continue;
+                default:
+/*                    var obj=this.words[this.words.length-1];
+                    if(obj){
+                        obj['var']=obj['var']+this.inChars.charAt(this.start)
+                    }*/
+
                     continue;
 
             }
@@ -1078,18 +1085,22 @@ TextReader.prototype = {
         var _string = '';
         for (var i = idx; i < l; i++) {
             var char = this.inChars.charAt(i);
-            if (this.checkModifier(char)) {
+            if (this.checkModifier(char) && char !='|') {
                 _string += char;
             } else {
                 i--;
                 break;
             }
         }
-        this.words.push({'modifier': _string});
+        //如果是||符号且不参与运算
+        if(_string.length>0){
+            this.words.push({'modifier': _string});
+        }else{
+            throw new Error("语法不符合规范"+this.inChars);
+        }
         return i;
     }
 }
-var VAR_REGEX = /\$(([a-zA-Z_][a-zA-Z0-9_]*)(\.[a-zA-Z_][a-zA-Z0-9_]*)*(\[[^\]]+\]*)*)/ig;
 //var ATTRI_REGEX = /(?:[\s]*(?:([^=\s]+?)=)?((?:"[^"\\]*(?:\\.[^"\\]*)*"|'[^'\\]*(?:\\.[^'\\]*)*'|[^\s'"]+)+))+?/ig;
 var ATTRI_REGEX = /(?:[\s]*(?:([^=\s]+?)\s*=\s*)?(?:(?:"([^"\\]*)"|'([^'\\]*)'|([^\s'"]+)+)))+?/ig;
 /**
