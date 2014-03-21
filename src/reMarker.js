@@ -257,6 +257,31 @@ var $smarty = {
     'string_format': function (s, fmt) {
         return sprintf(fmt, s);
     },
+    'escape': function (s, esc_type, char_set, double_encode) {
+        s = new String(s);
+        esc_type = esc_type || 'html';
+        char_set = char_set || 'UTF-8';
+        double_encode = (typeof double_encode != 'undefined') ? Boolean(double_encode) : true;
+
+        switch (esc_type) {
+            case 'html':
+                if (double_encode) {
+                    s = s.replace(/&/g, '&amp;');
+                }
+                return s.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/'/g, '&#039;').replace(/"/g, '&quot;');
+            case 'url':
+                return rawurlencode(s);
+            case 'urlpathinfo':
+                return rawurlencode(s).replace(/%2F/g, '/');
+            case 'quotes':
+                return s.replace(/(^|[^\\])'/g, "$1\\'");
+
+            case 'javascript':
+                return s.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/<\//g, '<\/');
+        }
+        ;
+        return s;
+    },
     'fsize_format': function (size, format, precision) {
         // Defaults
         format = format || '';
@@ -412,7 +437,7 @@ TextReader.prototype = {
         var _string = '';
         for (var i = idx; i < l; i++) {
             var char = this.inChars.charAt(i);
-            if ((_string.length>0&&char==='.')||parseInt(char) == char) {
+            if ((_string.length > 0 && char === '.') || parseInt(char) == char) {
                 _string += char;
             } else {
                 i--;

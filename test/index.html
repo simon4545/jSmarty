@@ -32,6 +32,9 @@ classList: [<br/>
     <tr>
         <td>
             <div id="case0">
+                {$html|escape:"html"}<br/>
+                {"http://www.sohu.com?a=1&b=2"|escape:"url"}<br/>
+                {$javascript|escape:"javascript"}<br/>
                 {'a b'|spacify:"f"}<br/>
                 {124.62|string_format:"%.2f"}<br/>
                 {""|default:"default value"|truncate:7}<br/>
@@ -43,6 +46,7 @@ classList: [<br/>
                 {'count_words'|replace:"cou":"comeon"}<br/>
                 {'lowcase'|upper}<br/>
                 {'low ca se'|strip:"^"}<br/>
+
                 {$e|default:"default value"}
             </div>
         </td>
@@ -177,6 +181,8 @@ classList: [<br/>
     var data = {
         a: 1395328772751,
         b: 50,
+        html:'<td><div id="case8_display"></div></td>',
+        javascript:'for (var i = 0; i <= 8; i++) {var s = new NC.reMarker();displayObj.innerHTML = (s.proc(templateObj.innerHTML,data));}',
         search: 'good',
         classList: [
             {id: 1, name: 'test1'},
