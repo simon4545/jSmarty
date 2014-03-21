@@ -29,7 +29,8 @@ Parser.openLiteralTag = 0;
 Parser.prototype.parse = function(reMarker) {
     var _matched;
     this._reMarker = reMarker || {};
-    this._output = 'var _out=[];with($data){';
+    //with($data){
+    this._output = 'var _out=[];';
     for (var i = 0; i < this._tokens.length; i++) {
         var token = this._tokens[i];
         //防止literal中止
@@ -50,11 +51,11 @@ Parser.prototype.parse = function(reMarker) {
             this._output += this.functions[expr].call(this, token.matched, this.getAttributes(attributes));
         } else {
             //变量或非正常表达式
-            this._output += "_out.push($util.value(" + phpToJSVar(expr + token.value, Parser.openEachTag) + "));\r\n";
+            this._output += "_out.push($util.value(" + $smarty.expr(expr + token.value,Parser.openEachTag) + "));\r\n";
         }
     }
 
-    this._output += '};'
+    //this._output += '};'
     return this._output;
 }
 Parser.prototype.getAttributes = function(attributes) {
@@ -94,44 +95,7 @@ Parser.prototype.needSkip = function(param) {
     }
     return result;
 }
-Parser.prototype.modifiers = {
-    'date_format': function(value, format, default_date) {
-        if (!value && !default_date) {
-            return 'date_format语法错误';
-        }
-        var t = (value || default_date);
-        if (typeof t !== "number") {
-            t = strtotime(t, time());
-        }
-        var result = strftime((format || '%b %e %Y'), t);
-        return result;
-    },
-    'default': function(value, default_value) {
-        return value || default_value;
-    },
-    'fsize_format': function(size, format, precision) {
-        // Defaults
-        format = format || '';
-        precision = precision || 2;
-        // Sizes
-        var sizes = {
-            'TB': 1099511627776,
-            'GB': 1073741824,
-            'MB': 1048576,
-            'KB': 1024,
-            'B': 1
-        };
-        // Get "human" filesize
-        var result = '';
-        for (var s in sizes) {
-            if (size > sizes[s] || s == strtoupper(format)) {
-                result = number_format(size / sizes[s], precision) + ' ' + s;
-                break;
-            }
-        }
-        return result;
-    }
-};
+
 Parser.prototype.functions = {
     //注释
     '*': function(content, attribute) {
@@ -165,7 +129,7 @@ Parser.prototype.functions = {
                 continue;
             }
             if (arg_value.indexOf('$') == 0) {
-                var nativeKey = phpToJSVar(arg_value, Parser.openEachTag);
+                var nativeKey = $smarty.expr(arg_value);
                 //todo:simon 这块有bug
                 attributes[arg_name] = eval('this._vars.' + nativeKey);
             }
@@ -197,7 +161,7 @@ Parser.prototype.functions = {
         var key = attr['var'].replace(/'|"/ig, '');
         this._vars[key] = value;
         //要做成转换语句了
-        return 'var ' + key + '="' + phpToJSVar(attr.value, Parser.openEachTag) + '";';
+        return 'var ' + key + '="' + $smarty.expr(attr.value) + '";';
     },
     //
     'foreachelse': function(content, attr) {
@@ -217,9 +181,9 @@ Parser.prototype.functions = {
         var _temp = [];
         //TODO foreach.show没有实现
         _temp.push('~function(){');
-        _temp.push('if(Object.prototype.toString.call({$var})==="[object Array]" && {$var}.length>0){ '.replace(/\{\$var\}/ig,phpToJSVar(from, Parser.openEachTag)));
-        _temp.push('var iter=0;var length = 0;for (var k in ' + phpToJSVar(from, Parser.openEachTag) + ') {++length;}');
-        _temp.push('for (var i in ' + phpToJSVar(from, Parser.openEachTag) + ') {');
+        _temp.push('if(Object.prototype.toString.call({$var})==="[object Array]" && {$var}.length>0){ '.replace(/\{\$var\}/ig,$smarty.expr(from)));
+        _temp.push('var iter=0;var length = 0;for (var k in ' + $smarty.expr(from) + ') {++length;}');
+        _temp.push('for (var i in ' + $smarty.expr(from) + ') {');
         _temp.push('var smarty={};smarty.foreach={};');
         _temp.push('smarty.foreach["' + name + '"] ={};');
         _temp.push('smarty.foreach["' + name + '"].index= iter;');
@@ -227,7 +191,7 @@ Parser.prototype.functions = {
         _temp.push('smarty.foreach["' + name + '"].first= iter==0;');
         _temp.push('smarty.foreach["' + name + '"].last= iter==length-1;');
         _temp.push('smarty.foreach["' + name + '"].total= length;');
-        _temp.push('var ' + item + '= ' + phpToJSVar(from, Parser.openEachTag) + '[i];');
+        _temp.push('var ' + item + '= ' + $smarty.expr(from) + '[i];');
         key && _temp.push(key + '= i;');
         _temp.push('iter++;');
         Parser.openEachTag++;
@@ -258,7 +222,7 @@ Parser.prototype.functions = {
 
         reset();
 
-        for (i in attributes) {
+        for (var i in attributes) {
             if (this.needSkip(i)) continue;
             attribute = attributes[i];
             if (this.needSkip(attribute)) continue;
@@ -294,7 +258,7 @@ Parser.prototype.functions = {
                         if (is) {
                             left += attribute + ' ';
                         } else {
-                            statement += phpToJSVar(attribute, Parser.openEachTag) + ' ';
+                            statement += $smarty.expr(attribute) + ' ';
                         }
                     }
                     break;

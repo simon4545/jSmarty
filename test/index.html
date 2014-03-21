@@ -1,94 +1,188 @@
 <html>
 <head>
-	<title></title>
-	<meta http-equiv="content-type" content="text/html;charset=utf-8">
+    <title></title>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8">
 </head>
 <script type="text/javascript" src="../dest/jsmart.js"></script>
+<style>
+    .list{
+        border:1px solid #0d3349;
+        border-spacing:0px;
+    }
+    .list td{
+        border:1px solid #0d3349;
+        margin:0;
+        padding: 0;
+    }
+</style>
 <body>
-<script id="case1" type="text/jsTemplate">
-	tempSearchData = '{$search}';
-</script>
-<script id="case2" type="text/jsTemplate">
-	{foreach from=$classList item=classItem}
-        <dd id="{$classItem.id}">
-                <a href="#"><span>{$classItem.name}</span></a>
-            </dd>
-    {/foreach}
-</script>
-<script id="case3" type="text/jsTemplate">
-	{foreach from=$classList item=classItem name=foo}
-		{$smarty.foreach.foo.index}{$smarty.foreach.foo.last}
-        <dd id="{$classItem.id}">
-                <a href="#"><span>{$classItem.name}</span></a>
-            </dd>
-    {/foreach}
-</script>
-<script id="case4" type="text/jsTemplate">
-{literal}
-	{foreach from=$classList item=classItem name=foo}
-		{$smarty.foreach.foo.index}{$smarty.foreach.foo.last}
-        <dd id="{$classItem.id}">
-                <a href="#"><span>{$classItem.name}</span></a>
-            </dd>
-    {/foreach}
-{/literal}
-</script>
-<script id="case5" type="text/jsTemplate">
-	{foreach from=$classList item=classItem name=foo}
-		{$smarty.foreach.foo.index}{$smarty.foreach.foo.last}
-        <dd id="{$classItem.id}">
-                <a href="#"><span>{$classItem.name}</span></a>
-            </dd>
-    {foreachelse}
-    foreach is empty
-    {/foreach}
-</script>
-<script id="case6" type="text/jsTemplate">{assign var="asdf" value="test"}{$asdf}</script>
-<script id="case7" type="text/jsTemplate">{if $a lt 1}$a<1{else}$a>1{/if}</script>
-<script id="case8" type="text/jsTemplate">
-{if $a lt 1}$a<1{elseif $b gt 10}$b>10{else}$a>1{/if}
-</script>
+jSmarty用法列表(不在表中的用法，当前未实现)<br/>
+数据源:
+{<br/>
+a: 1395328772751,<br/>
+b: 50,<br/>
+search: 'good',<br/>
+classList: [<br/>
+{id: 1, name: 'test1'},<br/>
+{id: 2, name: 'test2222222222222'},<br/>
+{id: 3, name: 'test3'}<br/>
+]<br/>
+};
+<table  class="list">
+    <tr>
+        <td>
+            <div id="case0">
+                {"asdfasdf"|truncate:7}<br/>
+                {$a|date_format:"%Y-%m-%d"}<br/>
+                {$e|default:"default value"}
+            </div>
+        </td>
+        <td>
+            <div id="case0_display"></div>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <div id="case1">
+                tempSearchData = '{$search}';
+            </div>
+        </td>
+        <td>
+            <div id="case1_display"></div>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <div id="case2">
+                {foreach from=$classList item=classItem}
+                    &lt;dd id="{$classItem.id}"&gt;<br/>
+                &lt;a href="#">&lt;span>{$classItem["name"]}&lt;/span&gt;&lt;/a&gt;<br/>
+                &lt;/dd&gt;<br/>
+                {/foreach}
+            </div>
+        </td>
+        <td>
+            <div id="case2_display"></div>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <div id="case3">
+                {foreach from=$classList item=classItem name=foo}<br/>
+                    {$smarty.foreach.foo.index}<br/>
+                    {$smarty.foreach.foo.last}<br/>
+                &lt;dd id="{$classItem.id}"&gt;<br/>
+                &lt;a href="#">&lt;span&gt;{$classItem.name1|default:"default value"|truncate:6}&lt;/span&gt;&lt;/a&gt;<br/>
+                &lt;/dd&gt;<br/>
+                {/foreach}
+            </div>
+        </td>
+        <td>
+            <div id="case3_display"></div>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <div id="case4">
+                {literal}
+                    {foreach from=$classList item=classItem name=foo}<br/>
+                        {$smarty.foreach.foo.index}<br/>{$smarty.foreach.foo.last}<br/>
+                &lt;dd id="{$classItem.id}"&gt;<br/>
+                &lt;a href="#"&gt;&lt;span&gt;{$classItem.name}&lt;/span&gt;&lt;/a&gt;<br/>
+                &lt;/dd&gt;
+                    {/foreach}
+                {/literal}
+            </div>
+        </td>
+        <td>
+            <div id="case4_display"></div>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <div id="case5">
+                {foreach from=$emptyList item=classItem name=foo}<br/>
+                    {$smarty.foreach.foo.index}<br/>
+                {$smarty.foreach.foo.last}<br/>
+                &lt;dd id="{$classItem.id}"&gt;<br/>
+                &lt;a href="#"&gt;&lt;span&gt;{$classItem.name}&lt;/span&gt;&lt;/a&gt;<br/>
+                &lt;/dd&gt;<br/>
+                {foreachelse}
+                    foreach为空
+                {/foreach}
+            </div>
+        </td>
+        <td>
+            <div id="case5_display"></div>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <div id="case6">
+                {assign var="asdf" value="test"}<br/>
+                {$asdf}
+            </div>
+        </td>
+        <td>
+            <div id="case6_display"></div>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <div id="case7">
+                {if "asdf" eq "asdf"}<br/>
+                $a<1<br/>
+                {/if}<br/>
+                {if $a lt 1}<br/>
+                    $a<1<br/>
+                {else}<br/>
+                    $a>1<br/>
+                {/if}
+
+            </div>
+        </td>
+        <td>
+            <div id="case7_display"></div>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <div id="case8">
+                {if $a lt 1}<br/>
+                    $a<1<br/>
+                {elseif $b gt 10}<br/>
+                    $b>10<br/>
+                {else}<br/>
+                    $a>1<br/>
+                {/if}
+            </div>
+        </td>
+        <td>
+            <div id="case8_display"></div>
+        </td>
+    </tr>
+</table>
+
+
 <script type="text/javascript">
-//var
-var s=new NC.reMarker();
-console.log(s.proc(document.getElementById('case1').innerHTML,{search:'good'}));
-//foreach
-var s=new NC.reMarker();
-console.log(s.proc(document.getElementById('case2').innerHTML,{
-	classList:[
-	{id:1,name:'test1'},
-	{id:2,name:'test2'},
-	{id:3,name:'test3'}
-	]
-}));
-//foreach index,last
-var s=new NC.reMarker();
-console.log(s.proc(document.getElementById('case3').innerHTML,{
-	classList:[
-	{id:1,name:'test1'},
-	{id:2,name:'test2'},
-	{id:3,name:'test3'}
-	]
-}));
-//literal
-var s=new NC.reMarker();
-console.log(s.proc(document.getElementById('case4').innerHTML,{}));
+    var data = {
+        a: 1395328772751,
+        b: 50,
+        search: 'good',
+        classList: [
+            {id: 1, name: 'test1'},
+            {id: 2, name: 'test2222222222222'},
+            {id: 3, name: 'test3'}
+        ]
+    };
+    for (var i = 0; i <= 8; i++) {
+        var s = new NC.reMarker();
+        var displayObj = document.getElementById('case' + i + '_display');
+        var templateObj = document.getElementById('case' + i);
+        displayObj.innerHTML = (s.proc(templateObj.innerHTML,data));
+    }
 
-//foreachelse
-var s=new NC.reMarker();
-console.log(s.proc(document.getElementById('case5').innerHTML,{classList:[]}));
 
-//assign
-var s=new NC.reMarker();
-console.log(s.proc(document.getElementById('case6').innerHTML,{}));
-
-//if
-var s=new NC.reMarker();
-console.log(s.proc(document.getElementById('case7').innerHTML,{a:10,b:50}));
-
-//if elseif
-var s=new NC.reMarker();
-console.log(s.proc(document.getElementById('case8').innerHTML,{a:10,b:50}));
 </script>
 </body>
 </html>	
