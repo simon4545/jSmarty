@@ -543,19 +543,26 @@ $smarty.expr = function (variable, localVar) {
         for (; i < words.length; i++) {
             var modifier = $smarty[words[i]['modifier']];
             if (modifier) {
-                exprString = '$util.' + words[i]['modifier'] + '(' + exprString +  _attr(i) + ')';
+                exprString = '$util.' + words[i]['modifier'] + '(' + exprString +  _attr(i+1) + ')';
                 //variable= modifier(words[i+1]);
             }
         }
     }
     function _attr(start){
+        //没有更多的参数，直接返回
+        if(!words[start]){
+            return '';
+        }
         var _attri=[];
+
         for(var k = start; k < words.length; k++){
             if(!words[k]['modifier']){
                 _attri.push(words[k]['string']||words[k]['num'])
+            }else{
+                break;
             }
         }
-        i=k;
+        i=k-1;
         //如果是有属性的在前面补一个逗号
         if(_attri.length!=0){
             _attri.unshift('');
@@ -651,7 +658,7 @@ TextReader.prototype = {
             }
         }
         this.words.push({'num':_string});
-        return idx + i;
+        return i;
     },
     findVariable: function (idx) {
         var l = this.inChars.length;
@@ -679,12 +686,12 @@ TextReader.prototype = {
                 _string += '\\\'';
                 i++;
             } else {
-                i--;
+                //i++;
                 break;
             }
         }
         this.words.push({'string':'\'' + _string + '\''});
-        return idx + i;
+        return i;
     },
     findModifier: function (idx) {
         var l = this.inChars.length;

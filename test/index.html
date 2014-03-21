@@ -32,7 +32,7 @@ classList: [<br/>
     <tr>
         <td>
             <div id="case0">
-                {"asdfasdf"|truncate:7}<br/>
+                {""|default:"default value"|truncate:7}<br/>
                 {$a|date_format:"%Y-%m-%d"}<br/>
                 {$e|default:"default value"}
             </div>
@@ -72,7 +72,7 @@ classList: [<br/>
                     {$smarty.foreach.foo.index}<br/>
                     {$smarty.foreach.foo.last}<br/>
                 &lt;dd id="{$classItem.id}"&gt;<br/>
-                &lt;a href="#">&lt;span&gt;{$classItem.name1|default:"default value"|truncate:6}&lt;/span&gt;&lt;/a&gt;<br/>
+                &lt;a href="#">&lt;span&gt;{$classItem.name|default:"default value"|truncate:6}&lt;/span&gt;&lt;/a&gt;<br/>
                 &lt;/dd&gt;<br/>
                 {/foreach}
             </div>
