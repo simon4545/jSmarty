@@ -28,6 +28,12 @@ function removeUnsafe(html) {
     var _templ = html.replace(/([\r\n])/ig, '\\n').replace(/\s{2,}/ig, ' ').replace(/\'/ig, "\\\'");
     return _templ;
 }
+
+function removeQuote(html) {
+    var _templ = html.replace(/[\"|\']/ig, '');
+    return _templ;
+}
+
 function strtotime(text, now) {
     //  discuss at: http://phpjs.org/functions/strtotime/
     //     version: 1109.2016
@@ -591,6 +597,49 @@ function sprintf() {
 
     return format.replace(regex, doFormat);
 }
+
+var op=['+','-','*','/','%'];
+function wrapModifier(idx,item,arr){
+    var exprString=[item];
+    var swap=item;
+    for(var i=idx+1;i<arr.length;i++){
+        if(arr[i]=='|'){
+            //送下一位和下两位的数据
+            swap = '$util.' + arr[i+1] + '(' + exprString[exprString.length-1] + _attr(i + 1) + ')';
+            exprString.pop();
+            exprString.push(swap);
+        }
+        else {
+            break;
+        }
+    }
+
+    arr.idx=i;
+    function _attr(start) {
+        //没有更多的参数，直接返回
+        if (arr[start+1]!=':') {
+            i++;
+            return '';
+        }
+        var _attri = [];
+
+        for (var k = start+1; k < arr.length; k++) {
+            if (arr[k]==':') {
+                _attri.push(arr[k+1]);
+                k=k+1;
+            } else {
+                break;
+            }
+        }
+        i=k-1;
+        //如果是有属性的在前面补一个逗号
+        if (_attri.length != 0) {
+            _attri.unshift('');
+        }
+        return _attri.join(',');
+    }
+    return exprString.join('');
+}
 var nc = typeof exports !== 'undefined' ? exports : {};
 var fs, path, filter, util;
 if (env == 'node') {
@@ -787,6 +836,9 @@ var $smarty = {
         }
         return 1;
     },
+    'strlen': function (s) {
+        return s.length;
+    },
     'count_sentences': function (s) {
         var found = s.match(/[^\s]\.(?!\w)/g);
         if (found) {
@@ -905,51 +957,19 @@ $smarty.expr = function (variable, localVar) {
         return variable;
     }
 
-    var exprString;
-    //todo:判断是不是局部变量，且不是字符串类型，这里不严谨
-    //如果是字符串或数字，则是静态内容，不需要处理
-    if (words[0]['string'] || words[0]['num']) {
-        exprString = words[0]['string'] || words[0]['num'];
-    }
-    else if (!localVar) {
-        exprString = '$data.' + words[0]['var'];
-    }
-    else {
-        exprString = words[0]['var'];
-    }
-    if (words.length > 1) {
-        var i = 1;
-        for (; i < words.length; i++) {
-            var modifier = $smarty[words[i]['modifier']];
-            if (modifier) {
-                exprString = '$util.' + words[i]['modifier'] + '(' + exprString + _attr(i + 1) + ')';
-                //variable= modifier(words[i+1]);
-            }
+    //var exprString= words[0];
+    var value='';
+    words.idx=0;
+    for(;words.idx<words.length;){
+        if(words[words.idx+1]=='|'){
+            value+=wrapModifier(words.idx,words[words.idx],words);
+        }else{
+            value+=words[words.idx];
+            words.idx++;
         }
-    }
-    function _attr(start) {
-        //没有更多的参数，直接返回
-        if (!words[start]) {
-            return '';
-        }
-        var _attri = [];
 
-        for (var k = start; k < words.length; k++) {
-            if (!words[k]['modifier']) {
-                _attri.push(words[k]['string'] || words[k]['num'])
-            } else {
-                break;
-            }
-        }
-        i = k - 1;
-        //如果是有属性的在前面补一个逗号
-        if (_attri.length != 0) {
-            _attri.unshift('');
-        }
-        return _attri.join(',');
     }
-
-    return exprString;
+    return value;
 }
 $smarty.value = function (variable) {
     //variable=$smarty.expr(variable);
@@ -968,31 +988,98 @@ var TextReader = function (inChars) {
 TextReader.prototype = {
     start: 0,
     end: 0,
-    VAR_REGEXP: /[^\s\|]/i,
+    VAR_REGEXP: /[\w\-]/i,
 
     read: function () {
-        var l = this.inChars.length;
-        for (; this.start <= l; this.start++) {
-            switch (this.inChars.charAt(this.start)) {
+        var l = this.inChars.length, cs = 0;
+        for (; this.start <= l;) {
+            var c = this.inChars.charAt(this.start);
+            cs++;
+            if (cs > 100) {
+                console.log('%s,%d', this.inChars, this.start);
+                break;
+            }
+            switch (c) {
                 // 过滤空白字符
                 case '\t':
                 case '\r':
                 case ' ':
+                    this.start++;
                     break;
-                // 识别符号
-                case '@':
-                    continue;
-                case '|':
-                    // 识别符号
-                    this.start = this.findModifier(this.start + 1);
-                    continue;
                 case '$':
                     // 识别变量表达式
-                    this.start = this.findVariable(this.start + 1);
+                    this.start = this.findVariable(this.start + 1, this.words);
+                    continue;
+                // 识别符号
+                case 'A':
+                case 'B':
+                case 'C':
+                case 'D':
+                case 'E':
+                case 'F':
+                case 'G':
+                case 'H':
+                case 'I':
+                case 'J':
+                case 'K':
+                case 'L':
+                case 'M':
+                case 'N':
+                case 'O':
+                case 'P':
+                case 'Q':
+                case 'R':
+                case 'S':
+                case 'T':
+                case 'U':
+                case 'V':
+                case 'W':
+                case 'X':
+                case 'Y':
+                case 'Z':
+                case 'a':
+                case 'b':
+                case 'c':
+                case 'd':
+                case 'e':
+                case 'f':
+                case 'g':
+                case 'h':
+                case 'i':
+                case 'j':
+                case 'k':
+                case 'l':
+                case 'm':
+                case 'n':
+                case 'o':
+                case 'p':
+                case 'q':
+                case 'r':
+                case 's':
+                case 't':
+                case 'u':
+                case 'v':
+                case 'w':
+                case 'x':
+                case 'y':
+                case 'z':
+                case '_':
+                case '@':
+                    this.start = this.findIdentifier(this.start, this.words);
+                    continue;
+                // 识别符号
+                case '!':
+                case '=':
+                case '>':
+                case '<':
+                case '|':
+                case '&':
+                    // 识别符号
+                    this.start = this.findOperation(this.start + 1, c, this.words);
                     continue;
                 case '"':
                 case '\'':
-                    this.start = this.findString(this.start + 1);
+                    this.start = this.findString(this.start + 1, this.words);
                     continue;
                 case '0':
                 case '1':
@@ -1004,23 +1091,31 @@ TextReader.prototype = {
                 case '7':
                 case '8':
                 case '9':
-                    this.start = this.findNumber(this.start);
+                    this.start = this.findNumber(this.start, this.words);
                     continue;
+                case '+':
+                case '-':
+                case '*':
+                case '/':
+                case '%':
+                case '(':
+                case ')':
+                    this.start++;
+                    this.words.push(c);
+                    break;
                 case ':':
-                    //this.start=this.findString(this.start+1);
+                    this.start++;
+                    this.words.push(':');
                     continue;
                 default:
-/*                    var obj=this.words[this.words.length-1];
-                    if(obj){
-                        obj['var']=obj['var']+this.inChars.charAt(this.start)
-                    }*/
-
+                    this.start++
                     continue;
-
             }
+            //break;
 
         }
-        ;
+        console && console.log(this.inChars);
+        console && console.log(JSON.stringify(this.words));
         return this.words;
     },
     skip: function (l) {
@@ -1032,7 +1127,7 @@ TextReader.prototype = {
     checkModifier: function (char) {
         return char != ':';
     },
-    findNumber: function (idx) {
+    findNumber: function (idx, container) {
         var l = this.inChars.length;
         var _string = '';
         for (var i = idx; i < l; i++) {
@@ -1040,14 +1135,15 @@ TextReader.prototype = {
             if ((_string.length > 0 && char === '.') || parseInt(char) == char) {
                 _string += char;
             } else {
-                i--;
                 break;
             }
         }
-        this.words.push({'num': _string});
+        //console.log('idx' + idx);
+        //console.log(i);
+        container && (container.push(_string));
         return i;
     },
-    findVariable: function (idx) {
+    findIdentifier: function (idx, container) {
         var l = this.inChars.length;
         var _string = '';
         for (var i = idx; i < l; i++) {
@@ -1055,14 +1151,55 @@ TextReader.prototype = {
             if (this.checkVariable(char)) {
                 _string += char;
             } else {
-                i--;
                 break;
             }
         }
-        this.words.push({'var': _string});
+        container && (container.push(_string));
         return i;
     },
-    findString: function (idx) {
+    findVariable: function (idx, container) {
+        var l = this.inChars.length;
+        var _string = '';
+        for (var i = idx; i < l; i++) {
+            var char = this.inChars.charAt(i);
+            if (this.checkVariable(char)) {
+                _string += char;
+            } else if (char == '.') {
+                var _i = this.findIdentifier(i + 1);
+                //后面不接任何属性
+                if (_i == (i + 1)) {
+                    throw new Error('属性写法不正确:' + this.inChars);
+                }
+                _string += this.inChars.substring(i, _i);
+                //findX方法都会返回下一个索引位置，这里需要再回滚,因为for循环会再加+
+                i = _i - 1;
+            } else if (char == '[') {
+                //['asdfasdf']
+                var _content = this.inChars.substring(i);//'asdfasdf']
+                _content = _content.substring(1, _content.indexOf(']'));//'asdfasdf'
+                if (!_content) {
+                    throw new Error('属性写法不正确:' + this.inChars);
+                }
+                var _tr = new TextReader(_content);
+                var _split = _tr.read();
+                //var _i=this.findString(i+1);
+                //后面不接任何属性
+                if (_split.length == 0) {
+                    throw new Error('属性写法不正确:' + this.inChars);
+                }
+                _string += this.inChars.substr(i, _content.length + 2);
+                //索引加字符长度减1
+                i = i + _content.length + 1;
+            }
+            else {
+                //i++;
+                break;
+            }
+        }
+        container && (container.push(_string));
+        return i;
+    },
+    findString: function (idx, container) {
         var l = this.inChars.length;
         var _string = '';
         for (var i = idx; i < l; i++) {
@@ -1073,31 +1210,36 @@ TextReader.prototype = {
                 _string += '\\\'';
                 i++;
             } else {
-                //i++;
+                //已经结束字符表达示,把最后一个符号的位置补上
+                i++;
                 break;
             }
         }
-        this.words.push({'string': '\'' + _string + '\''});
+        container && (container.push('\'' + _string + '\''));
         return i;
     },
-    findModifier: function (idx) {
+    findOperation: function (idx, op, container) {
         var l = this.inChars.length;
-        var _string = '';
         for (var i = idx; i < l; i++) {
             var char = this.inChars.charAt(i);
-            if (this.checkModifier(char) && char !='|') {
-                _string += char;
-            } else {
-                i--;
+            if (char == '=' || char == '|' || char == '&') {
+                op += char;
+                i++;//要break出去了
+                if (this.inChars.charAt(i) == '=') {
+                    op += char;
+                    i++;
+                }
                 break;
+            } else {
+                //i--;
+                break;
+
             }
         }
-        //如果是||符号且不参与运算
-        if(_string.length>0){
-            this.words.push({'modifier': _string});
-        }else{
-            throw new Error("语法不符合规范"+this.inChars);
-        }
+
+        container && container.push(op);
+
+        //console.log(i);
         return i;
     }
 }
@@ -1132,7 +1274,7 @@ Parser.prototype.parse = function(reMarker) {
     var _matched;
     this._reMarker = reMarker || {};
     //with($data){
-    this._output = 'var _out=[];';
+    this._output = 'var _out=[];with($data){';
     for (var i = 0; i < this._tokens.length; i++) {
         var token = this._tokens[i];
         //防止literal中止
@@ -1158,31 +1300,16 @@ Parser.prototype.parse = function(reMarker) {
         }
     }
 
-    //this._output += '};'
+    this._output += '};'
     return this._output;
 }
 Parser.prototype.getAttributes = function(attributes) {
     if (!attributes) {
         return [];
     }
-    var _matched, _i = 0;
-    var attributes_new = {};
-    while (_matched = ATTRI_REGEX.exec((' ' + attributes))) {
-        var key;
-        var value;
-        if (typeof _matched[1] === 'undefined') {
-            key = _i;
-            value = _matched[0].replace(/^\s+|\s+$/g, '');
-            _i++;
-        } else {
-            key = _matched[1];
-            value = _matched[2] || _matched[3] || _matched[4];
-        }
-        attributes_new[key] = value;
-    }
-
-    attributes = attributes_new;
-    return attributes;
+    var _var = new TextReader(attributes);
+    var words = _var.read();
+    return words;
 }
 
 Parser.prototype.needSkip = function(param) {
@@ -1213,32 +1340,27 @@ Parser.prototype.functions = {
         return _temp.join('\r\n');
     },
     'include': function(content, attributes) {
-        if (attributes['file'] == undefined) {
+        if(!attributes || attributes.length<3){
             return 'include语法错误' + content;
         }
-        if (env == 'node') {
-            return 'include语法不被支持';
-        }
-        var var_file, var_assign;
-        for (var arg_name in attributes) {
-            var arg_value = attributes[arg_name];
-            if (arg_name == 'file') {
-                var_file = arg_value;
-                delete attributes[arg_name];
-                continue;
-            }
-            if (arg_name == 'assign') {
-                var_assign = arg_value;
-                continue;
-            }
-            if (arg_value.indexOf('$') == 0) {
-                var nativeKey = $smarty.expr(arg_value);
-                //todo:simon 这块有bug
-                attributes[arg_name] = eval('this._vars.' + nativeKey);
+        var var_assign,attrs={},key,value;
+        attributes.idx=0;
+        for(;attributes.idx<attributes.length;){
+            key=attributes[attributes.idx];
+            value=wrapModifier(attributes.idx+2,attributes[attributes.idx+2],attributes);
+            attrs[key]=value;
+            if(key!='file'){
+                var_assign=key;
             }
         }
-        var url = path.normalize(path.join(this._reMarker._basePath, var_file));
-        var content = fetch(url, this._reMarker._basePath, attributes);
+        if (env != 'node') {
+            return '_out.push("include语法不被支持");';
+        }
+        if(!attrs.file){
+            return 'include语法错误' + content;
+        }
+        var url = path.normalize(path.join(this._reMarker._basePath, attrs.file));
+        var content = fetch(url, this._reMarker._basePath, attrs);
         //记录当前被调用的文件以备以后自动加载
         this._reMarker.setIncluded(url);
         if (var_assign) {
@@ -1253,18 +1375,22 @@ Parser.prototype.functions = {
         //return '_out.push(\'<script type="text/javascript" src="' + template_id + '.js"><\/scr' + 'ipt>\');';
     },
     //赋值
-    assign: function(content, attr) {
-        if (typeof attr['var'] === 'undefined' || typeof attr['value'] === 'undefined') {
+    assign: function(content, attributes) {
+        if(!attributes || attributes.length<3){
             return 'assign语法错误' + content;
         }
-        var value = attr['value'];
-        if (value === '[]') { // Make an object
-            value = {};
+        var attrs={},key,value;
+        attributes.idx=0;
+        for(;attributes.idx<attributes.length;){
+            key=attributes[attributes.idx];
+            value=wrapModifier(attributes.idx+2,attributes[attributes.idx+2],attributes);
+            attrs[key]=value;
         }
-        var key = attr['var'].replace(/'|"/ig, '');
+        var value = attrs['value'];
+        var key =removeQuote(attrs['var']) ;
         this._vars[key] = value;
         //要做成转换语句了
-        return 'var ' + key + '="' + $smarty.expr(attr.value) + '";';
+        return 'var ' + key + '=' +value + ';';
     },
     //
     'foreachelse': function(content, attr) {
@@ -1272,21 +1398,33 @@ Parser.prototype.functions = {
     },
     //循环
     foreach: function(content, attributes) { // Sections
-        var from = attributes.from;
-        var item = attributes.item;
+        var var_assign,attrs={},key,value;
+        attributes.idx=0;
+        for(;attributes.idx<attributes.length;){
+            key=attributes[attributes.idx];
+            value=wrapModifier(attributes.idx+2,attributes[attributes.idx+2],attributes);
+            attrs[key]=value;
+        }
+        var from = attrs.from;
+        var item = attrs.item;
         if (!from && !item) {
             return 'assign语法错误' + content;
         }
 
-        var key = attributes.key || 'k' + Math.round(Math.random() * 10000);
-        var name = attributes.name || Math.round(Math.random() * 10000);
+        var key = attrs.key || 'k' + Math.round(Math.random() * 10000);
+        var name = attrs.name || 'n'+Math.round(Math.random() * 10000);
+        name=removeQuote(name);
+        key=removeQuote(key);
+        from=removeQuote(from);
+        item=removeQuote(item);
 
         var _temp = [];
+        var _from=$smarty.expr(from);
         //TODO foreach.show没有实现
         _temp.push('~function(){');
-        _temp.push('if(Object.prototype.toString.call({$var})==="[object Array]" && {$var}.length>0){ '.replace(/\{\$var\}/ig,$smarty.expr(from)));
-        _temp.push('var iter=0;var length = 0;for (var k in ' + $smarty.expr(from) + ') {++length;}');
-        _temp.push('for (var i in ' + $smarty.expr(from) + ') {');
+        _temp.push('if(Object.prototype.toString.call({$var})==="[object Array]" && {$var}.length>0){ '.replace(/\{\$var\}/ig,_from));
+        _temp.push('var iter=0;var length = 0;for (var k in ' + _from + ') {++length;}');
+        _temp.push('for (var i in ' + _from + ') {');
         _temp.push('var smarty={};smarty.foreach={};');
         _temp.push('smarty.foreach["' + name + '"] ={};');
         _temp.push('smarty.foreach["' + name + '"].index= iter;');
@@ -1294,7 +1432,7 @@ Parser.prototype.functions = {
         _temp.push('smarty.foreach["' + name + '"].first= iter==0;');
         _temp.push('smarty.foreach["' + name + '"].last= iter==length-1;');
         _temp.push('smarty.foreach["' + name + '"].total= length;');
-        _temp.push('var ' + item + '= ' + $smarty.expr(from) + '[i];');
+        _temp.push('var ' + item + '= ' + _from + '[i];');
         key && _temp.push(key + '= i;');
         _temp.push('iter++;');
         Parser.openEachTag++;
@@ -1324,10 +1462,14 @@ Parser.prototype.functions = {
         };
 
         reset();
-
-        for (var i in attributes) {
+        var attrs=[];
+        attributes.idx=0;
+        for(;attributes.idx<attributes.length;){
+            attrs.push(wrapModifier(attributes.idx,attributes[attributes.idx],attributes));
+        }
+        for (var i in attrs) {
             if (this.needSkip(i)) continue;
-            attribute = attributes[i];
+            attribute = attrs[i];
             if (this.needSkip(attribute)) continue;
             switch (attribute) {
                 case 'is':
@@ -1361,7 +1503,7 @@ Parser.prototype.functions = {
                         if (is) {
                             left += attribute + ' ';
                         } else {
-                            statement += $smarty.expr(attribute) + ' ';
+                            statement += attribute + ' ';
                         }
                     }
                     break;

@@ -29,7 +29,7 @@ Parser.prototype.parse = function(reMarker) {
     var _matched;
     this._reMarker = reMarker || {};
     //with($data){
-    this._output = 'var _out=[];with($data){';
+    this._output = 'var _out=[];';
     for (var i = 0; i < this._tokens.length; i++) {
         var token = this._tokens[i];
         //防止literal中止
@@ -55,7 +55,7 @@ Parser.prototype.parse = function(reMarker) {
         }
     }
 
-    this._output += '};'
+    //this._output += '};'
     return this._output;
 }
 Parser.prototype.getAttributes = function(attributes) {
@@ -64,7 +64,25 @@ Parser.prototype.getAttributes = function(attributes) {
     }
     var _var = new TextReader(attributes);
     var words = _var.read();
-    return words;
+
+    var _matched, _i = 0;
+    var attributes_new = {};
+    while (_matched = ATTRI_REGEX.exec((' ' + attributes))) {
+        var key;
+        var value;
+        if (typeof _matched[1] === 'undefined') {
+            key = _i;
+            value = _matched[0].replace(/^\s+|\s+$/g, '');
+            _i++;
+        } else {
+            key = _matched[1];
+            value = _matched[2] || _matched[3] || _matched[4];
+        }
+        attributes_new[key] = value;
+    }
+
+    attributes = attributes_new;
+    return attributes;
 }
 
 Parser.prototype.needSkip = function(param) {
@@ -95,27 +113,32 @@ Parser.prototype.functions = {
         return _temp.join('\r\n');
     },
     'include': function(content, attributes) {
-        if(!attributes || attributes.length<3){
+        if (attributes['file'] == undefined) {
             return 'include语法错误' + content;
         }
-        var var_assign,attrs={},key,value;
-        attributes.idx=0;
-        for(;attributes.idx<attributes.length;){
-            key=attributes[attributes.idx];
-            value=wrapModifier(attributes.idx+2,attributes[attributes.idx+2],attributes);
-            attrs[key]=value;
-            if(key!='file'){
-                var_assign=key;
+        if (env == 'node') {
+            return 'include语法不被支持';
+        }
+        var var_file, var_assign;
+        for (var arg_name in attributes) {
+            var arg_value = attributes[arg_name];
+            if (arg_name == 'file') {
+                var_file = arg_value;
+                delete attributes[arg_name];
+                continue;
+            }
+            if (arg_name == 'assign') {
+                var_assign = arg_value;
+                continue;
+            }
+            if (arg_value.indexOf('$') == 0) {
+                var nativeKey = $smarty.expr(arg_value);
+                //todo:simon 这块有bug
+                attributes[arg_name] = eval('this._vars.' + nativeKey);
             }
         }
-        if (env != 'node') {
-            return '_out.push("include语法不被支持");';
-        }
-        if(!attrs.file){
-            return 'include语法错误' + content;
-        }
-        var url = path.normalize(path.join(this._reMarker._basePath, attrs.file));
-        var content = fetch(url, this._reMarker._basePath, attrs);
+        var url = path.normalize(path.join(this._reMarker._basePath, var_file));
+        var content = fetch(url, this._reMarker._basePath, attributes);
         //记录当前被调用的文件以备以后自动加载
         this._reMarker.setIncluded(url);
         if (var_assign) {
@@ -130,22 +153,18 @@ Parser.prototype.functions = {
         //return '_out.push(\'<script type="text/javascript" src="' + template_id + '.js"><\/scr' + 'ipt>\');';
     },
     //赋值
-    assign: function(content, attributes) {
-        if(!attributes || attributes.length<3){
+    assign: function(content, attr) {
+        if (typeof attr['var'] === 'undefined' || typeof attr['value'] === 'undefined') {
             return 'assign语法错误' + content;
         }
-        var attrs={},key,value;
-        attributes.idx=0;
-        for(;attributes.idx<attributes.length;){
-            key=attributes[attributes.idx];
-            value=wrapModifier(attributes.idx+2,attributes[attributes.idx+2],attributes);
-            attrs[key]=value;
+        var value = attr['value'];
+        if (value === '[]') { // Make an object
+            value = {};
         }
-        var value = attrs['value'];
-        var key =removeQuote(attrs['var']) ;
+        var key = attr['var'].replace(/'|"/ig, '');
         this._vars[key] = value;
         //要做成转换语句了
-        return 'var ' + key + '=' +value + ';';
+        return 'var ' + key + '="' + $smarty.expr(attr.value) + '";';
     },
     //
     'foreachelse': function(content, attr) {
@@ -153,25 +172,14 @@ Parser.prototype.functions = {
     },
     //循环
     foreach: function(content, attributes) { // Sections
-        var var_assign,attrs={},key,value;
-        attributes.idx=0;
-        for(;attributes.idx<attributes.length;){
-            key=attributes[attributes.idx];
-            value=wrapModifier(attributes.idx+2,attributes[attributes.idx+2],attributes);
-            attrs[key]=value;
-        }
-        var from = attrs.from;
-        var item = attrs.item;
+        var from = attributes.from;
+        var item = attributes.item;
         if (!from && !item) {
             return 'assign语法错误' + content;
         }
 
-        var key = attrs.key || 'k' + Math.round(Math.random() * 10000);
-        var name = attrs.name || 'n'+Math.round(Math.random() * 10000);
-        name=removeQuote(name);
-        key=removeQuote(key);
-        from=removeQuote(from);
-        item=removeQuote(item);
+        var key = attributes.key || 'k' + Math.round(Math.random() * 10000);
+        var name = attributes.name || Math.round(Math.random() * 10000);
 
         var _temp = [];
         var _from=$smarty.expr(from);
@@ -217,14 +225,10 @@ Parser.prototype.functions = {
         };
 
         reset();
-        var attrs=[];
-        attributes.idx=0;
-        for(;attributes.idx<attributes.length;){
-            attrs.push(wrapModifier(attributes.idx,attributes[attributes.idx],attributes));
-        }
-        for (var i in attrs) {
+
+        for (var i in attributes) {
             if (this.needSkip(i)) continue;
-            attribute = attrs[i];
+            attribute = attributes[i];
             if (this.needSkip(attribute)) continue;
             switch (attribute) {
                 case 'is':
@@ -258,7 +262,7 @@ Parser.prototype.functions = {
                         if (is) {
                             left += attribute + ' ';
                         } else {
-                            statement += attribute + ' ';
+                            statement += $smarty.expr(attribute) + ' ';
                         }
                     }
                     break;

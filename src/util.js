@@ -11,6 +11,12 @@ function removeUnsafe(html) {
     var _templ = html.replace(/([\r\n])/ig, '\\n').replace(/\s{2,}/ig, ' ').replace(/\'/ig, "\\\'");
     return _templ;
 }
+
+function removeQuote(html) {
+    var _templ = html.replace(/[\"|\']/ig, '');
+    return _templ;
+}
+
 function strtotime(text, now) {
     //  discuss at: http://phpjs.org/functions/strtotime/
     //     version: 1109.2016
@@ -573,4 +579,47 @@ function sprintf() {
     };
 
     return format.replace(regex, doFormat);
+}
+
+var op=['+','-','*','/','%'];
+function wrapModifier(idx,item,arr){
+    var exprString=[item];
+    var swap=item;
+    for(var i=idx+1;i<arr.length;i++){
+        if(arr[i]=='|'){
+            //送下一位和下两位的数据
+            swap = '$util.' + arr[i+1] + '(' + exprString[exprString.length-1] + _attr(i + 1) + ')';
+            exprString.pop();
+            exprString.push(swap);
+        }
+        else {
+            break;
+        }
+    }
+
+    arr.idx=i;
+    function _attr(start) {
+        //没有更多的参数，直接返回
+        if (arr[start+1]!=':') {
+            i++;
+            return '';
+        }
+        var _attri = [];
+
+        for (var k = start+1; k < arr.length; k++) {
+            if (arr[k]==':') {
+                _attri.push(arr[k+1]);
+                k=k+1;
+            } else {
+                break;
+            }
+        }
+        i=k-1;
+        //如果是有属性的在前面补一个逗号
+        if (_attri.length != 0) {
+            _attri.unshift('');
+        }
+        return _attri.join(',');
+    }
+    return exprString.join('');
 }

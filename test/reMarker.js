@@ -194,9 +194,6 @@ var $smarty = {
         }
         return 1;
     },
-    'strlen': function (s) {
-        return s.length;
-    },
     'count_sentences': function (s) {
         var found = s.match(/[^\s]\.(?!\w)/g);
         if (found) {
@@ -315,19 +312,51 @@ $smarty.expr = function (variable, localVar) {
         return variable;
     }
 
-    //var exprString= words[0];
-    var value='';
-    words.idx=0;
-    for(;words.idx<words.length;){
-        if(words[words.idx+1]=='|'){
-            value+=wrapModifier(words.idx,words[words.idx],words);
-        }else{
-            value+=words[words.idx];
-            words.idx++;
-        }
-
+    var exprString;
+    //todo:判断是不是局部变量，且不是字符串类型，这里不严谨
+    //如果是字符串或数字，则是静态内容，不需要处理
+    if (words[0]['string'] || words[0]['num']) {
+        exprString = words[0]['string'] || words[0]['num'];
     }
-    return value;
+    else if (!localVar) {
+        exprString = '$data.' + words[0]['var'];
+    }
+    else {
+        exprString = words[0]['var'];
+    }
+    if (words.length > 1) {
+        var i = 1;
+        for (; i < words.length; i++) {
+            var modifier = $smarty[words[i]['modifier']];
+            if (modifier) {
+                exprString = '$util.' + words[i]['modifier'] + '(' + exprString + _attr(i + 1) + ')';
+                //variable= modifier(words[i+1]);
+            }
+        }
+    }
+    function _attr(start) {
+        //没有更多的参数，直接返回
+        if (!words[start]) {
+            return '';
+        }
+        var _attri = [];
+
+        for (var k = start; k < words.length; k++) {
+            if (!words[k]['modifier']) {
+                _attri.push(words[k]['string'] || words[k]['num'])
+            } else {
+                break;
+            }
+        }
+        i = k - 1;
+        //如果是有属性的在前面补一个逗号
+        if (_attri.length != 0) {
+            _attri.unshift('');
+        }
+        return _attri.join(',');
+    }
+
+    return exprString;
 }
 $smarty.value = function (variable) {
     //variable=$smarty.expr(variable);
@@ -350,7 +379,7 @@ TextReader.prototype = {
 
     read: function () {
         var l = this.inChars.length, cs = 0;
-        for (; this.start <= l;) {
+        for (; this.start <= l; ) {
             var c = this.inChars.charAt(this.start);
             cs++;
             if (cs > 100) {
@@ -366,7 +395,7 @@ TextReader.prototype = {
                     break;
                 case '$':
                     // 识别变量表达式
-                    this.start = this.findVariable(this.start + 1, this.words);
+                    this.start = this.findVariable(this.start + 1,this.words);
                     continue;
                 // 识别符号
                 case 'A':
@@ -423,7 +452,7 @@ TextReader.prototype = {
                 case 'z':
                 case '_':
                 case '@':
-                    this.start = this.findIdentifier(this.start, this.words);
+                    this.start = this.findIdentifier(this.start,this.words);
                     continue;
                 // 识别符号
                 case '!':
@@ -433,11 +462,11 @@ TextReader.prototype = {
                 case '|':
                 case '&':
                     // 识别符号
-                    this.start = this.findOperation(this.start + 1, c, this.words);
+                    this.start = this.findOperation(this.start + 1, c,this.words);
                     continue;
                 case '"':
                 case '\'':
-                    this.start = this.findString(this.start + 1, this.words);
+                    this.start = this.findString(this.start + 1,this.words);
                     continue;
                 case '0':
                 case '1':
@@ -449,21 +478,7 @@ TextReader.prototype = {
                 case '7':
                 case '8':
                 case '9':
-                    this.start = this.findNumber(this.start, this.words);
-                    continue;
-                case '+':
-                case '-':
-                case '*':
-                case '/':
-                case '%':
-                case '(':
-                case ')':
-                    this.start++;
-                    this.words.push(c);
-                    break;
-                case ':':
-                    this.start++;
-                    this.words.push(':');
+                    this.start = this.findNumber(this.start,this.words);
                     continue;
                 default:
                     this.start++
@@ -472,8 +487,8 @@ TextReader.prototype = {
             //break;
 
         }
-        console && console.log(this.inChars);
-        console && console.log(JSON.stringify(this.words));
+        console&&console.log(this.inChars);
+        console&&console.log(JSON.stringify(this.words));
         return this.words;
     },
     skip: function (l) {
@@ -485,7 +500,7 @@ TextReader.prototype = {
     checkModifier: function (char) {
         return char != ':';
     },
-    findNumber: function (idx, container) {
+    findNumber: function (idx,container) {
         var l = this.inChars.length;
         var _string = '';
         for (var i = idx; i < l; i++) {
@@ -498,10 +513,10 @@ TextReader.prototype = {
         }
         //console.log('idx' + idx);
         //console.log(i);
-        container && (container.push(_string));
+        container&&(container.push({'num': _string}));
         return i;
     },
-    findIdentifier: function (idx, container) {
+    findIdentifier: function (idx,container) {
         var l = this.inChars.length;
         var _string = '';
         for (var i = idx; i < l; i++) {
@@ -512,52 +527,52 @@ TextReader.prototype = {
                 break;
             }
         }
-        container && (container.push(_string));
+        container&&(container.push({'ident': _string}));
         return i;
     },
-    findVariable: function (idx, container) {
+    findVariable: function (idx,container) {
         var l = this.inChars.length;
         var _string = '';
         for (var i = idx; i < l; i++) {
             var char = this.inChars.charAt(i);
             if (this.checkVariable(char)) {
                 _string += char;
-            } else if (char == '.') {
-                var _i = this.findIdentifier(i + 1);
+            }else if(char=='.'){
+                var _i=this.findIdentifier(i+1);
                 //后面不接任何属性
-                if (_i == (i + 1)) {
-                    throw new Error('属性写法不正确:' + this.inChars);
+                if(_i==(i+2)){
+                    throw new Error('属性写法不正确:'+this.inChars);
                 }
-                _string += this.inChars.substring(i, _i);
+                _string+=this.inChars.substring(i,_i);
                 //findX方法都会返回下一个索引位置，这里需要再回滚,因为for循环会再加+
-                i = _i - 1;
-            } else if (char == '[') {
+                i=_i-1;
+            }else if(char=='['){
                 //['asdfasdf']
-                var _content = this.inChars.substring(i);//'asdfasdf']
-                _content = _content.substring(1, _content.indexOf(']'));//'asdfasdf'
-                if (!_content) {
-                    throw new Error('属性写法不正确:' + this.inChars);
+                var _content=this.inChars.substring(i);//'asdfasdf']
+                _content=_content.substring(1,_content.indexOf(']'));//'asdfasdf'
+                if(!_content){
+                    throw new Error('属性写法不正确:'+this.inChars);
                 }
-                var _tr = new TextReader(_content);
-                var _split = _tr.read();
+                var _tr=new TextReader(_content);
+                var _split=_tr.read();
                 //var _i=this.findString(i+1);
                 //后面不接任何属性
-                if (_split.length == 0) {
-                    throw new Error('属性写法不正确:' + this.inChars);
+                if(_split.length==0){
+                    throw new Error('属性写法不正确:'+this.inChars);
                 }
-                _string += this.inChars.substr(i, _content.length + 2);
+                _string+=this.inChars.substr(i,_content.length+2);
                 //索引加字符长度减1
-                i = i + _content.length + 1;
+                i=i+_content.length+1;
             }
             else {
                 //i++;
                 break;
             }
         }
-        container && (container.push(_string));
+        container&&(container.push({'var': _string}));
         return i;
     },
-    findString: function (idx, container) {
+    findString: function (idx,container) {
         var l = this.inChars.length;
         var _string = '';
         for (var i = idx; i < l; i++) {
@@ -573,20 +588,16 @@ TextReader.prototype = {
                 break;
             }
         }
-        container && (container.push('\'' + _string + '\''));
+        container&&(container.push({'string': '\'' + _string + '\''}));
         return i;
     },
-    findOperation: function (idx, op, container) {
+    findOperation: function (idx, op,container) {
         var l = this.inChars.length;
         for (var i = idx; i < l; i++) {
             var char = this.inChars.charAt(i);
             if (char == '=' || char == '|' || char == '&') {
                 op += char;
                 i++;//要break出去了
-                if (this.inChars.charAt(i) == '=') {
-                    op += char;
-                    i++;
-                }
                 break;
             } else {
                 //i--;
@@ -594,9 +605,13 @@ TextReader.prototype = {
 
             }
         }
+        //如果是||符号且不参与运算
+        if (op.length == 1 && op=='|') {
+            container&&container.push({'modifier': op});
 
-        container && container.push(op);
-
+        } else {
+            container&&container.push({'operation': op});
+        }
         //console.log(i);
         return i;
     }
