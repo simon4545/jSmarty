@@ -757,6 +757,9 @@ var $smarty = {
             return 'date_format语法错误';
         }
         var t = (value || default_date);
+        if(parseInt(t)==t){
+            t=parseInt(t);
+        }
         if (typeof t !== "number") {
             t = strtotime(t);
             t&&(t*=1000);
@@ -992,7 +995,12 @@ $smarty.expr = function (variable, localVar) {
 $smarty.value = function (variable) {
     //variable=$smarty.expr(variable);
     if (toString.call(variable) === '[object Object]' || toString.call(variable) === '[object Array]') {
-        return JSON.stringify(variable);
+        if(typeof(JSON)!='undefined'){
+            return JSON.stringify(variable);
+        }
+        else{
+            return jQuery.parseJSON(variable);
+        }
     } else {
         return variable;
     }
@@ -1444,11 +1452,11 @@ Parser.prototype.functions = {
         var name = attrs.name || 'n'+Math.round(Math.random() * 10000);
         name=removeQuote(name);
         key=removeQuote(key);
-        from=removeQuote(from);
+        from=from;
         item=removeQuote(item);
 
         var _temp = [];
-        var _from=$smarty.expr(from);
+        var _from=from;
         //TODO foreach.show没有实现
         _temp.push('~function(){');
         _temp.push('if(typeof({$var})!="undefined" && Object.prototype.toString.call({$var})==="[object Array]" && {$var}.length>0){ '.replace(/\{\$var\}/ig,_from));
