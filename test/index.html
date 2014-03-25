@@ -22,8 +22,8 @@ jSmarty用法列表(不在表中的用法，当前未实现)<br/>
 a: 1395328772751,<br/>
 b: 50,<br/>
 search: 'good',<br/>
-html:'&lt;td&gt;&lt;div id="case8_display"&gt;&lt;/div&gt;&lt;/td&gt;',<br/>
-javascript:'for (var i = 0; i <= 8; i++) {var s = new NC.reMarker();displayObj.innerHTML = (s.proc(templateObj.innerHTML,data));}',<br/>
+html:'&lt;div id="case8_display"&gt;&lt;/div&gt;',<br/>
+javascript:'for (var i = 0; i <= 8; i++) {}',<br/>
 searchInfo:{keyWord:1,s:{a:1}},<br/>
 classList: [<br/>
 {id: 1, name: 'test1'},<br/>
@@ -35,20 +35,12 @@ classList: [<br/>
     <tr>
         <td>
             <div id="case0">
-                {if $searchInfo.keyWord|default:"asdf" == "" }<br/>
-                asdf<br/>
-                {else}<br/>
-                {$searchInfo.keyWord}<br/>
-                {/if}<br/>
+                {$e|default:"default value"}<br/>
                 {$searchInfo.keyWord}<br/>
                 {$searchInfo.s.a|escape:"javascript"}<br/>
                 {$b/($a - $b)/2}<br/>
-                {"asdfasdf\nwww"|nl2br}<br/>
+                {"asdfasdfwww"|nl2br}<br/>
                 {124.62|string_format:"%.1f"}<br/>
-                {assign var="foo" value=$search|strlen}<br/>
-                {assign var="foo" value=$a+$search|strlen}
-                {include file="a" asdf=1}
-
                 {$html|escape:"html"}<br/>
                 {"http://www.sohu.com?a=1&b=2"|escape:"url"}<br/>
                 {$javascript|escape:"javascript"}<br/>
@@ -58,7 +50,6 @@ classList: [<br/>
                 {$a|date_format:"%Y-%m-%d"}<br/>
                 {"asdfasdf"|capitalize:true}<br/>
                 {12312312|fsize_format:"MB":3}<br/>
-
                 {'lowcase'|cat:"111"}<br/>
                 {'count_words'|replace:"cou":"comeon"}<br/>
                 {'lowcase'|upper}<br/>
@@ -177,9 +168,9 @@ classList: [<br/>
     <tr>
         <td>
             <div id="case8">
-                {if $a lt 1}<br/>
+                {if $a <= 1}<br/>
                     $a<1<br/>
-                {elseif $b gt 10}<br/>
+                {elseif $b > 10}<br/>
                     $b>10<br/>
                 {else}<br/>
                     $a>1<br/>
@@ -193,7 +184,7 @@ classList: [<br/>
     <tr>
         <td>
             <div id="case9">
-                {if $searchInfo.keyWord=="" }<br/>
+                {if $searchInfo.keyWord!="" }<br/>
                 asdf<br/>
                 {else}<br/>
                 {$searchInfo.keyWord}<br/>
@@ -218,16 +209,33 @@ classList: [<br/>
             <div id="case9_display"></div>
         </td>
     </tr>
+    <tr>
+        <td>
+            <div id="case10">
+                {assign var="foo" value=$a+$search|strlen}{$foo}<br/>
+                {assign var="foo" value=$search|strlen}{$foo}<br/>
+                {assign var=foo value="$search|strlen"}{$foo}<br/>
+                {include file="a" "asdf"="1"}<br/>
+
+            </div>
+        </td>
+        <td>
+            <div id="case10_display"></div>
+        </td>
+    </tr>
 
 </table>
 
 
 <script type="text/javascript">
+    function a(str) {
+        return str.replace('&lt;', '<').replace('&gt;', '>');
+    }
     var data = {
         a: 1395328772751,
         b: 50,
-        html:'<td><div id="case8_display"></div></td>',
-        javascript:'for (var i = 0; i <= 8; i++) {var s = new NC.reMarker();displayObj.innerHTML = (s.proc(templateObj.innerHTML,data));}',
+        html:'<div id="case8_display"></div>',
+        javascript:'for (var i = 0; i <= 8; i++) {}',
         search: 'good',
         searchInfo:{keyWord:1,s:{a:1}},
         classList: [
@@ -237,15 +245,14 @@ classList: [<br/>
         ]
     };
 
-    for (var i = 0; i <= 0; i++) {
+    for (var i = 0; i <= 10; i++) {
         var s = new NC.reMarker();
         var displayObj = document.getElementById('case' + i + '_display');
         var templateObj = document.getElementById('case' + i);
-        displayObj.innerHTML = (s.proc(templateObj.innerText,data));
+        displayObj.innerHTML = (s.proc(a(templateObj.innerHTML),data));
     }
 
 
 </script>
-{$e|default:"default value"}
 </body>
 </html>	

@@ -588,7 +588,13 @@ function wrapModifier(idx,item,arr){
     for(var i=idx+1;i<arr.length;i++){
         if(arr[i]=='|'){
             //送下一位和下两位的数据
-            swap = '$util.' + arr[i+1] + '(' + exprString[exprString.length-1] + _attr(i + 1) + ')';
+            if(arr[i+1]=='default'){
+                //对default要单独处理，有时default传入的参数前提前可能就会报错
+                swap='((typeof({_value_})==="undefined"|| {_value_}===null)?{_replace_}:{_value_})'.replace(/\{_value_\}/ig,exprString[exprString.length-1]);
+                swap=swap.replace('{_replace_}',_attr(i + 1));
+            }else{
+                swap = '$util.' + arr[i+1] + '(' + exprString[exprString.length-1] + _attr(i + 1,true) + ')';
+            }
             exprString.pop();
             exprString.push(swap);
         }
@@ -598,7 +604,7 @@ function wrapModifier(idx,item,arr){
     }
 
     arr.idx=i;
-    function _attr(start) {
+    function _attr(start,isParams) {
         //没有更多的参数，直接返回
         if (arr[start+1]!=':') {
             i++;
@@ -616,10 +622,22 @@ function wrapModifier(idx,item,arr){
         }
         i=k-1;
         //如果是有属性的在前面补一个逗号
-        if (_attri.length != 0) {
+        if (isParams && _attri.length != 0) {
             _attri.unshift('');
         }
         return _attri.join(',');
     }
     return exprString.join('');
+}
+
+function findArray(item,arr,start){
+    start=start||0;
+    for(var i =start;i<arr.length;i++){
+        if(arr[i]==item){
+            arr.idx=i;
+            return arr.slice(start,i).join(' ');
+        }
+    }
+    arr.idx=arr.length;
+    return arr.slice(start).join(' ');
 }

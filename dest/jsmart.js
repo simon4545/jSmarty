@@ -605,7 +605,13 @@ function wrapModifier(idx,item,arr){
     for(var i=idx+1;i<arr.length;i++){
         if(arr[i]=='|'){
             //送下一位和下两位的数据
-            swap = '$util.' + arr[i+1] + '(' + exprString[exprString.length-1] + _attr(i + 1) + ')';
+            if(arr[i+1]=='default'){
+                //对default要单独处理，有时default传入的参数前提前可能就会报错
+                swap='((typeof({_value_})==="undefined"|| {_value_}===null)?{_replace_}:{_value_})'.replace(/\{_value_\}/ig,exprString[exprString.length-1]);
+                swap=swap.replace('{_replace_}',_attr(i + 1));
+            }else{
+                swap = '$util.' + arr[i+1] + '(' + exprString[exprString.length-1] + _attr(i + 1,true) + ')';
+            }
             exprString.pop();
             exprString.push(swap);
         }
@@ -615,7 +621,7 @@ function wrapModifier(idx,item,arr){
     }
 
     arr.idx=i;
-    function _attr(start) {
+    function _attr(start,isParams) {
         //没有更多的参数，直接返回
         if (arr[start+1]!=':') {
             i++;
@@ -633,12 +639,24 @@ function wrapModifier(idx,item,arr){
         }
         i=k-1;
         //如果是有属性的在前面补一个逗号
-        if (_attri.length != 0) {
+        if (isParams && _attri.length != 0) {
             _attri.unshift('');
         }
         return _attri.join(',');
     }
     return exprString.join('');
+}
+
+function findArray(item,arr,start){
+    start=start||0;
+    for(var i =start;i<arr.length;i++){
+        if(arr[i]==item){
+            arr.idx=i;
+            return arr.slice(start,i).join(' ');
+        }
+    }
+    arr.idx=arr.length;
+    return arr.slice(start).join(' ');
 }
 var nc = typeof exports !== 'undefined' ? exports : {};
 var fs, path, filter, util;
@@ -967,7 +985,6 @@ $smarty.expr = function (variable, localVar) {
             value+=words[words.idx];
             words.idx++;
         }
-
     }
     return value;
 }
@@ -1346,7 +1363,7 @@ Parser.prototype.functions = {
         var var_assign,attrs={},key,value;
         attributes.idx=0;
         for(;attributes.idx<attributes.length;){
-            key=attributes[attributes.idx];
+            key=removeQuote(attributes[attributes.idx]);
             value=wrapModifier(attributes.idx+2,attributes[attributes.idx+2],attributes);
             attrs[key]=value;
             if(key!='file'){
@@ -1359,7 +1376,7 @@ Parser.prototype.functions = {
         if(!attrs.file){
             return 'include语法错误' + content;
         }
-        var url = path.normalize(path.join(this._reMarker._basePath, attrs.file));
+        var url = path.normalize(path.join(this._reMarker._basePath,removeQuote(attrs.file) ));
         var content = fetch(url, this._reMarker._basePath, attrs);
         //记录当前被调用的文件以备以后自动加载
         this._reMarker.setIncluded(url);
@@ -1379,11 +1396,22 @@ Parser.prototype.functions = {
         if(!attributes || attributes.length<3){
             return 'assign语法错误' + content;
         }
-        var attrs={},key,value;
+        var attrArr=[];
         attributes.idx=0;
         for(;attributes.idx<attributes.length;){
-            key=attributes[attributes.idx];
-            value=wrapModifier(attributes.idx+2,attributes[attributes.idx+2],attributes);
+            attrArr.push(wrapModifier(attributes.idx,attributes[attributes.idx],attributes));
+        }
+        var attrs={},key,value;
+        attrArr.idx=0;
+        for(;attrArr.idx<attrArr.length;){
+            key=attrArr[attrArr.idx];
+            if(key=='var'){
+                value=findArray('value',attrArr,attrArr.idx+2);
+
+            }
+            if(key=='value'){
+                value=findArray('var',attrArr,attrArr.idx+2);
+            }
             attrs[key]=value;
         }
         var value = attrs['value'];
@@ -1422,7 +1450,7 @@ Parser.prototype.functions = {
         var _from=$smarty.expr(from);
         //TODO foreach.show没有实现
         _temp.push('~function(){');
-        _temp.push('if(Object.prototype.toString.call({$var})==="[object Array]" && {$var}.length>0){ '.replace(/\{\$var\}/ig,_from));
+        _temp.push('if(typeof({$var})!="undefined" && Object.prototype.toString.call({$var})==="[object Array]" && {$var}.length>0){ '.replace(/\{\$var\}/ig,_from));
         _temp.push('var iter=0;var length = 0;for (var k in ' + _from + ') {++length;}');
         _temp.push('for (var i in ' + _from + ') {');
         _temp.push('var smarty={};smarty.foreach={};');

@@ -325,7 +325,6 @@ $smarty.expr = function (variable, localVar) {
             value+=words[words.idx];
             words.idx++;
         }
-
     }
     return value;
 }
