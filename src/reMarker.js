@@ -99,6 +99,7 @@ var $smarty = {
         var t = (value || default_date);
         if (typeof t !== "number") {
             t = strtotime(t);
+            t&&(t*=1000);
         }
         var result = strftime(new Date(t), (format || '%Y/%m/%d'));
         return result;
