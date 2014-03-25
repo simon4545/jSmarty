@@ -181,11 +181,11 @@ Parser.prototype.functions = {
         var name = attrs.name || 'n'+Math.round(Math.random() * 10000);
         name=removeQuote(name);
         key=removeQuote(key);
-        from=removeQuote(from);
+        from=from;
         item=removeQuote(item);
 
         var _temp = [];
-        var _from=$smarty.expr(from);
+        var _from=from;
         //TODO foreach.show没有实现
         _temp.push('~function(){');
         _temp.push('if(typeof({$var})!="undefined" && Object.prototype.toString.call({$var})==="[object Array]" && {$var}.length>0){ '.replace(/\{\$var\}/ig,_from));
